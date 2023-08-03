@@ -27,21 +27,23 @@ fun main() {
         launch {
             try {
                 val posts = getPosts(client)
-                val postAuthors = posts.map { post ->
+                val postAuthorsDeferred = posts.map { post ->
                     async {
-                        getAuthor(client, post.id)
+                        getAuthor(client, post.authorId)
                     }
-                }.awaitAll()
-                val comments = posts.map { post ->
+                }
+                val commentsDeferred = posts.map { post ->
                     async {
                         getComments(client, post.id)
                     }
-                }.awaitAll()
+                }
+                val postAuthors = postAuthorsDeferred.awaitAll().toSet()
+                val comments = commentsDeferred.awaitAll()
                 val commentAuthors = comments.flatten().map { comment ->
                     async {
                         getAuthor(client, comment.authorId)
                     }
-                }.awaitAll()
+                }.awaitAll().toSet()
 
                 val postsWithAuthors: List<PostFull> = posts.map { post ->
                     PostFull(
